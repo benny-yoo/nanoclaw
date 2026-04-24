@@ -3,6 +3,7 @@ import { describe, it, expect } from 'bun:test';
 import { createProvider, type ProviderName } from './factory.js';
 import { ClaudeProvider } from './claude.js';
 import { MockProvider } from './mock.js';
+import { OpenAIProvider } from './openai.js';
 import { OpenCodeProvider } from './opencode.js';
 
 describe('createProvider', () => {
@@ -16,6 +17,10 @@ describe('createProvider', () => {
 
   it('returns OpenCodeProvider for opencode', () => {
     expect(createProvider('opencode')).toBeInstanceOf(OpenCodeProvider);
+  });
+
+  it('returns OpenAIProvider for openai', () => {
+    expect(createProvider('openai')).toBeInstanceOf(OpenAIProvider);
   });
 
   it('throws for unknown name', () => {

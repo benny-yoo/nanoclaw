@@ -10,6 +10,7 @@ dist/
 store/
 data/
 logs/
+.host.*
 
 # Groups - per-installation state, not tracked
 groups/*

@@ -4,4 +4,5 @@
 
 import './claude.js';
 import './mock.js';
+import './openai.js';
 import './opencode.js';

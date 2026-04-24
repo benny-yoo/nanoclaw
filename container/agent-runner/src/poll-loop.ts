@@ -20,6 +20,7 @@ function generateId(): string {
 export interface PollLoopConfig {
   provider: AgentProvider;
   cwd: string;
+  signal?: AbortSignal;
   systemContext?: {
     instructions?: string;
   };
@@ -52,6 +53,8 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
 
   let pollCount = 0;
   while (true) {
+    if (config.signal?.aborted) return;
+
     // Skip system messages — they're responses for MCP tools (e.g., ask_user_question)
     const messages = getPendingMessages().filter((m) => m.kind !== 'system');
     pollCount++;
@@ -160,7 +163,7 @@ export async function runPollLoop(config: PollLoopConfig): Promise<void> {
     const skippedSet = new Set(skipped);
     const processingIds = ids.filter((id) => !commandIds.includes(id) && !skippedSet.has(id));
     try {
-      const result = await processQuery(query, routing, processingIds);
+      const result = await processQuery(query, routing, processingIds, config.signal);
       if (result.continuation && result.continuation !== continuation) {
         continuation = result.continuation;
         setStoredSessionId(continuation);
@@ -238,9 +241,15 @@ async function processQuery(
   query: AgentQuery,
   routing: RoutingContext,
   initialBatchIds: string[],
+  signal?: AbortSignal,
 ): Promise<QueryResult> {
   let queryContinuation: string | undefined;
   let done = false;
+  const onAbort = () => {
+    done = true;
+    query.abort();
+  };
+  signal?.addEventListener('abort', onAbort, { once: true });
 
   // Concurrent polling: push follow-ups into the active query as they arrive.
   // We do NOT force-end the stream on silence — keeping the query open is
@@ -277,6 +286,7 @@ async function processQuery(
 
   try {
     for await (const event of query.events) {
+      if (done) break;
       handleEvent(event, routing);
       touchHeartbeat();
 
@@ -305,6 +315,7 @@ async function processQuery(
   } finally {
     done = true;
     clearInterval(pollHandle);
+    signal?.removeEventListener('abort', onAbort);
   }
 
   return { continuation: queryContinuation };

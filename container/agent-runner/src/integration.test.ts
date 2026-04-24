@@ -99,6 +99,7 @@ async function runPollLoopWithTimeout(provider: MockProvider, signal: AbortSigna
     runPollLoop({
       provider,
       cwd: '/tmp',
+      signal,
     }),
     new Promise<void>((_, reject) => {
       signal.addEventListener('abort', () => reject(new Error('aborted')));
