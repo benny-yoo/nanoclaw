@@ -14,7 +14,8 @@ import path from 'path';
 
 import { GROUPS_DIR } from './config.js';
 
-export interface McpServerConfig {
+export interface McpServerStdioConfig {
+  type?: 'stdio';
   command: string;
   args?: string[];
   env?: Record<string, string>;
@@ -23,6 +24,18 @@ export interface McpServerConfig {
   // into the composed CLAUDE.md.
   instructions?: string;
 }
+
+export interface McpServerHttpConfig {
+  type: 'http';
+  url: string;
+  headers?: Record<string, string>;
+  // Optional always-in-context guidance. When set, the host writes the
+  // content to `.claude-fragments/mcp-<name>.md` at spawn and imports it
+  // into the composed CLAUDE.md.
+  instructions?: string;
+}
+
+export type McpServerConfig = McpServerStdioConfig | McpServerHttpConfig;
 
 export interface AdditionalMountConfig {
   hostPath: string;

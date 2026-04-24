@@ -246,7 +246,19 @@ export class ClaudeProvider implements AgentProvider {
 
   constructor(options: ProviderOptions = {}) {
     this.assistantName = options.assistantName;
-    this.mcpServers = options.mcpServers ?? {};
+    this.mcpServers = {};
+    for (const [name, cfg] of Object.entries(options.mcpServers ?? {})) {
+      if (cfg.type === 'http') {
+        log(`Skipping MCP server '${name}' for claude provider: http transport is not supported by Claude SDK wiring`);
+        continue;
+      }
+      this.mcpServers[name] = {
+        type: 'stdio',
+        command: cfg.command,
+        args: cfg.args ?? [],
+        env: cfg.env ?? {},
+      };
+    }
     this.additionalDirectories = options.additionalDirectories;
     this.env = {
       ...(options.env ?? {}),

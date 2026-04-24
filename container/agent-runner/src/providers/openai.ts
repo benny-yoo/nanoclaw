@@ -1,4 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 import { registerProvider } from './provider-registry.js';
@@ -80,7 +81,7 @@ interface McpToolSpec extends McpToolMapping {
 interface McpServerSession {
   name: string;
   client: Client;
-  transport: StdioClientTransport;
+  transport: StdioClientTransport | StreamableHTTPClientTransport;
 }
 
 interface McpRuntime {
@@ -225,6 +226,16 @@ function buildStdioEnv(serverEnv?: Record<string, string>): Record<string, strin
     }
   }
   return merged;
+}
+
+function buildHttpHeaders(serverHeaders?: Record<string, string>): HeadersInit | undefined {
+  if (!serverHeaders) return undefined;
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(serverHeaders)) {
+    if (typeof value !== 'string') continue;
+    headers[key] = value;
+  }
+  return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
 function toOpenAIToolName(serverName: string, toolName: string): string {
@@ -640,11 +651,18 @@ export class OpenAIProvider implements AgentProvider {
     const discoveredTools: McpToolSpec[] = [];
 
     for (const [serverName, config] of Object.entries(this.mcpServers).sort(([a], [b]) => a.localeCompare(b))) {
-      const transport = new StdioClientTransport({
-        command: config.command,
-        args: config.args ?? [],
-        env: buildStdioEnv(config.env),
-      });
+      const transport =
+        config.type === 'http'
+          ? new StreamableHTTPClientTransport(new URL(config.url), {
+              requestInit: {
+                headers: buildHttpHeaders(config.headers),
+              },
+            })
+          : new StdioClientTransport({
+              command: config.command,
+              args: config.args ?? [],
+              env: buildStdioEnv(config.env),
+            });
 
       const client = new Client({
         name: `nanoclaw-openai-${serverName}`,

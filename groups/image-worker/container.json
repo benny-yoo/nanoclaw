@@ -1,0 +1,19 @@
+{ 
+  "mcpServers": {
+    "docling": {
+      "command": "npx",
+      "args": ["-y", "docling-mcp-server"],
+      "env": {}
+    }
+  },
+  "packages": {
+    "apt": [],
+    "npm": []
+  },
+  "additionalMounts": [],
+  "skills": "all",
+  "provider": "openai",
+  "groupName": "Orchebari",
+  "assistantName": "Orchebari",
+  "agentGroupId": "ag-1777003582077-6ujvgk"
+}

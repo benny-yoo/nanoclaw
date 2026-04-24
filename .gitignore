@@ -14,6 +14,9 @@ logs/
 
 # Groups - per-installation state, not tracked
 groups/*
+!groups/image-worker/
+!groups/image-worker/CLAUDE.md
+!groups/image-worker/container.json
 
 # Composer-managed CLAUDE.md artifacts (regenerated every spawn) and
 # per-group memory (CLAUDE.local.md) must never be committed.

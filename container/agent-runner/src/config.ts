@@ -6,6 +6,7 @@
  * instead of environment variables.
  */
 import fs from 'fs';
+import type { McpServerConfig } from './providers/types.js';
 
 const CONFIG_PATH = '/workspace/agent/container.json';
 
@@ -15,7 +16,7 @@ export interface RunnerConfig {
   groupName: string;
   agentGroupId: string;
   maxMessagesPerPrompt: number;
-  mcpServers: Record<string, { command: string; args: string[]; env: Record<string, string> }>;
+  mcpServers: Record<string, McpServerConfig>;
 }
 
 const DEFAULT_MAX_MESSAGES = 10;
@@ -42,7 +43,7 @@ export function loadConfig(): RunnerConfig {
     groupName: (raw.groupName as string) || '',
     agentGroupId: (raw.agentGroupId as string) || '',
     maxMessagesPerPrompt: (raw.maxMessagesPerPrompt as number) || DEFAULT_MAX_MESSAGES,
-    mcpServers: (raw.mcpServers as RunnerConfig['mcpServers']) || {},
+    mcpServers: loadMcpServers(raw),
   };
 
   return _config;
@@ -52,4 +53,45 @@ export function loadConfig(): RunnerConfig {
 export function getConfig(): RunnerConfig {
   if (!_config) throw new Error('Config not loaded — call loadConfig() first');
   return _config;
+}
+function loadMcpServers(raw: Record<string, unknown>): Record<string, McpServerConfig> {
+  const parsed: Record<string, McpServerConfig> = {};
+  const source = raw.mcpServers;
+  if (!source || typeof source !== 'object') return parsed;
+
+  for (const [name, value] of Object.entries(source as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') continue;
+    const server = value as Record<string, unknown>;
+    const type = typeof server.type === 'string' ? server.type.trim().toLowerCase() : '';
+
+    if (type === 'http' || typeof server.url === 'string') {
+      if (typeof server.url !== 'string' || server.url.trim().length === 0) {
+        console.error(`[config] MCP server '${name}' has invalid http url, skipping`);
+        continue;
+      }
+      parsed[name] = {
+        type: 'http',
+        url: server.url,
+        headers:
+          server.headers && typeof server.headers === 'object'
+            ? (server.headers as Record<string, string>)
+            : undefined,
+      };
+      continue;
+    }
+
+    if (typeof server.command !== 'string' || server.command.trim().length === 0) {
+      console.error(`[config] MCP server '${name}' has invalid stdio command, skipping`);
+      continue;
+    }
+
+    parsed[name] = {
+      type: 'stdio',
+      command: server.command,
+      args: Array.isArray(server.args) ? (server.args as string[]) : [],
+      env: server.env && typeof server.env === 'object' ? (server.env as Record<string, string>) : {},
+    };
+  }
+
+  return parsed;
 }

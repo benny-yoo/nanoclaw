@@ -9,6 +9,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "dev:env": "./scripts/dev-with-env.sh",
+    "dev:env:bg": "./scripts/dev-with-env.sh --bg",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:fix": "prettier --write \"src/**/*.ts\"",
